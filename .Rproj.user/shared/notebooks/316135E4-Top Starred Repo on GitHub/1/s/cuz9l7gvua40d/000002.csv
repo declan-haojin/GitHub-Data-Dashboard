@@ -1,0 +1,9 @@
+"0","#ggplot(data, aes(y=star,x=name)) + geom_col()"
+"0",""
+"0","renderPlot("
+"0","  {"
+"0","    ggplot(data, aes(x=star,y=star)) + geom_point()"
+"0","  }"
+"0",")"
+"2","Error in renderPlot({ : 没有""renderPlot""这个函数
+"

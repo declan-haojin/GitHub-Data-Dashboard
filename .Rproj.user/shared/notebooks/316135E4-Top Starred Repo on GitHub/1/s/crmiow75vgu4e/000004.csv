@@ -1,0 +1,24 @@
+"0","
+  
+  set.seed(7777777)
+  train_id = sample(nrow(data), size = 0.81*nrow(data))
+  
+  train_set = data[train_id,]
+  test_set = data[-train_id,]
+  
+  model_svm = svm(star ~ fork+watch+commits+branches, data, cost = 1000, gamma = 0.0001)
+# summary(model_svm)
+  train_predict_svm = predict(model_svm, train_set)
+  test_predict_svm = predict(model_svm, test_set)
+  sqrt(mean((train_set$star - train_predict_svm)^2))
+"
+"1","[1]"
+"1"," 7877.594"
+"1","
+"
+"0","  sqrt(mean((test_set$star - test_predict_svm)^2))"
+"1","[1]"
+"1"," 5990.459"
+"1","
+"
+"0","  "

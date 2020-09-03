@@ -1,0 +1,383 @@
+---
+title: "GitHub Data Analysis"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    social: menu
+    vertical_layout: fill
+    source_code: https://github.com/declan-haojin
+    favicon: https://cdn.jsdelivr.net/gh/declan-haojin/blog-image@master/img/20200615000056.png
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(dplyr)
+library(e1071)
+library(scales)
+library(visreg)
+library(randomForest)
+library(RColorBrewer)
+library(gridExtra)
+library(ggthemes)
+library(GGally)
+library(corrplot)
+library(ROCR)
+library(caret)
+data = read.csv("new.csv")
+
+
+# data = data[,-1]
+# data = data[,-1]
+# data = data[,-7]
+# data = data[,-7]
+# data = data[,-7]
+# data = data[,-7]
+# data = data[,-11]
+# data = data[,-11]
+# data = data[,-11]
+# data = data[,-7]
+# data = data[,-7]
+# data = data[,-9]
+# data = data[,-9]
+# 
+# write.csv(data,"new.csv")
+
+# Order by star
+
+
+# Change "k" into normal number form
+for(i in c(1:1500))
+{
+  for(j in c(5:9))
+  {
+    len = nchar(data[i,j])
+    label = substring(data[i,j], len, len)
+    rest = substring(data[i,j], 1, len-1)
+    if(identical(label, "k"))
+    {
+      data[i,j] = as.numeric(rest) * 1000
+    }
+    else if(len > 3)
+    {
+      data[i,j] = paste( substring(data[i,j], 1, len-4), substring(data[i,j], len-2,len), sep="")
+    }
+  }
+}
+
+data$star = as.numeric(data$star)
+data$fork = as.numeric(data$fork)
+data$watch = as.numeric(data$watch)
+data$commits = as.numeric(data$commits)
+data$branches = as.numeric(data$branches)
+
+typeof(data$star)
+summary(data)
+
+data = data[,-1]
+
+data = data[order(data$star, decreasing= T),]
+
+```
+
+
+Overview {data-icon="fa-list"}
+=======================================================================
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+selectInput("x","X Axis",c("star"="star","fork"="fork","watch"="watch","commits"="commits"))
+selectInput("y","Y Axis",c("star"="star","fork"="fork","watch"="watch","commits"="commits"))
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Data of GitHub
+```{r}
+valueBox(2020, icon = "fa-calendar-alt", color = "warning")
+```
+
+### Repositories
+
+```{r}
+valueBox(1500, icon = "fa-dropbox", color = "primary")
+```
+
+### Topics
+
+```{r}
+valueBox(20, icon = "fa-star", color = "info")
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### Customized X vs Y graph
+
+```{r}
+#ggplot(data, aes(y=star,x=name)) + geom_col()
+
+renderPlot(
+  {
+    ggplot(data, aes(x=star,y=star,color=topic)) + geom_point()
+  }
+)
+```
+
+### Corelation Graph
+
+```{r}
+corrplot(cor(data[,4:8]), method = "color") 
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### General Distribution of (star, watch)
+
+```{r}
+ggplot(data,aes(star,watch,color=topic)) + geom_point()+ theme_gdocs()
+```
+
+### Total Stars of Each Topic
+
+```{r}
+p <- ggplot(data,aes(x=topic,y=star,fill=topic))
+p + geom_col()
+```
+
+
+Correlation {data-icon="fa-list"}
+=======================================================================
+
+### Detailed Correlation Pair Graphs
+```{r}
+ggpairs(data[,4:8])
+
+```
+
+
+
+
+Linear Regression {data-icon="fa-list"}
+=======================================================================
+
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+numericInput("seed", "Random value for spliting training and test sets", 50000, 0, 99999)
+sliderInput("size", "Training/Test set size", 0, 1500, 1300)
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### RMSE Index for Training Set
+```{r}
+valueBox(7805.235, icon = "fa-star", color = "primary")
+
+```
+
+### RMSE Index for Test Set
+```{r}
+valueBox(6046.422, icon = "fa-star", color = "info")
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### Linear Regression
+
+```{r}
+renderPlot({
+  set.seed(input$seed)
+  train_id = sample(nrow(data), size = (input$size/1500)*nrow(data))
+  
+  # set.seed(7777777)
+  # train_id = sample(nrow(data), size = 0.81*nrow(data))
+  
+  train_set = data[train_id,]
+  test_set = data[-train_id,]
+  #print(paste(nrow(train_set), "train +", nrow(test_set), "test"))
+  model_lm = lm(star ~ fork+watch+commits+branches, train_set)
+  #plot(model_lm)
+  #model_glm <- glm(star ~ fork+watch+commits+branches, train_set)
+  par(mfrow = c(2, 2))  ##四个变量一起看
+  visreg(model_lm)
+  train_predict_lm = predict(model_lm, train_set)
+  test_predict_lm = predict(model_lm, test_set)
+  
+  
+  sqrt(mean((train_set$star - train_predict_lm)^2))
+  sqrt(mean((test_set$star - test_predict_lm)^2))
+  
+})
+
+```
+
+Random Forest {data-icon="fa-list"}
+=======================================================================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+numericInput("seed1", "Random value for spliting training and test sets", 50000, 0, 99999)
+sliderInput("size1", "Training/Test set size", 0, 1500, 1300)
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### RMSE Index for Training Set
+```{r}
+valueBox(4731.372, icon = "fa-star", color = "primary")
+```
+
+### RMSE Index for Test Set
+```{r}
+valueBox(5621.246, icon = "fa-star", color = "info")
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Error
+```{r}
+renderPlot({
+  set.seed(input$seed1)
+  train_id = sample(nrow(data), size = (input$size1/1500)*nrow(data))
+
+  # set.seed(7777777)
+  # train_id = sample(nrow(data), size = 0.81*nrow(data))
+
+  train_set = data[train_id,]
+  test_set = data[-train_id,]
+
+  model_rf = randomForest(star ~ fork+watch+commits+branches, train_set)
+
+  plot(model_rf)
+  #par(mfrow = c(2, 2))  ##四个变量一起看
+  #visreg(model_rf)
+
+
+  train_predict_rf = predict(model_rf, train_set)
+  test_predict_rf = predict(model_rf, test_set)
+  sqrt(mean((train_set$star - train_predict_rf)^2))
+  sqrt(mean((test_set$star - test_predict_rf)^2))
+ 
+})
+
+```
+
+
+### Visualization Pairs (4 variables) 
+
+```{r}
+renderPlot({
+  set.seed(input$seed1)
+  train_id = sample(nrow(data), size = (input$size1/1500)*nrow(data))
+  train_set = data[train_id,]
+  test_set = data[-train_id,]
+  
+  
+  
+  model_rf = randomForest(star ~ fork+watch+commits+branches, train_set)
+  
+  #plot(model_rf)
+  par(mfrow = c(2, 2))  ##四个变量一起看
+  visreg(model_rf)
+  
+  
+  train_predict_rf = predict(model_rf, train_set)
+  test_predict_rf = predict(model_rf, test_set)
+  sqrt(mean((train_set$star - train_predict_rf)^2))
+  sqrt(mean((test_set$star - test_predict_rf)^2))
+ 
+})
+```
+
+
+
+
+SVM {data-icon="fa-list"}
+=======================================================================
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+numericInput("seed2", "Random value for spliting training and test sets", 50000, 0, 99999)
+sliderInput("size2", "Training/Test set size", 0, 1500, 1300)
+```
+
+
+
+Row
+-----------------------------------------------------------------------
+
+### RMSE Index for Training Set
+```{r}
+valueBox(7877.594, icon = "fa-star", color = "primary")
+```
+
+### RMSE Index for Test Set
+```{r}
+valueBox(5990.459, icon = "fa-star", color = "info")
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Visualization Pairs (4 variables)
+
+```{r}
+
+renderPlot({
+  set.seed(input$seed2)
+  train_id = sample(nrow(data), size = (input$size2/1500)*nrow(data))
+  
+  
+  # set.seed(7777777)
+  # train_id = sample(nrow(data), size = 0.81*nrow(data))
+  
+  train_set = data[train_id,]
+  test_set = data[-train_id,]
+  
+  model_svm = svm(star ~ fork+watch+commits+branches, data, cost = 1000, gamma = 0.0001)
+# summary(model_svm)
+  train_predict_svm = predict(model_svm, train_set)
+  test_predict_svm = predict(model_svm, test_set)
+  sqrt(mean((train_set$star - train_predict_svm)^2))
+  sqrt(mean((test_set$star - test_predict_svm)^2))
+  
+  
+  par(mfrow = c(2, 2))  ##四个变量一起看
+  visreg(model_svm)
+})
+
+```
+
+
+Data {data-icon="fa-list"}
+=======================================================================
+```{r}
+DT::datatable(data)
+```
+

@@ -1,0 +1,104 @@
+---
+title: "CRAN Download Monitor"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    social: menu
+    source_code: https://git.io/vaZdx
+runtime: shiny
+---
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(visreg)
+library(RColorBrewer)
+library(gridExtra)
+library(ggthemes)
+library(GGally)
+library(corrplot)
+library(ROCR)
+library(caret)
+data = read.csv("new.csv")
+
+
+# data = data[,-1]
+# data = data[,-1]
+# data = data[,-7]
+# data = data[,-7]
+# data = data[,-7]
+# data = data[,-7]
+# data = data[,-11]
+# data = data[,-11]
+# data = data[,-11]
+# data = data[,-7]
+# data = data[,-7]
+# data = data[,-9]
+# data = data[,-9]
+# 
+# write.csv(data,"new.csv")
+
+# Order by star
+
+
+# Change "k" into normal number form
+for(i in c(1:1500))
+{
+  for(j in c(5:9))
+  {
+    len = nchar(data[i,j])
+    label = substring(data[i,j], len, len)
+    rest = substring(data[i,j], 1, len-1)
+    if(identical(label, "k"))
+    {
+      data[i,j] = as.numeric(rest) * 1000
+    }
+    else if(len > 3)
+    {
+      data[i,j] = paste( substring(data[i,j], 1, len-4), substring(data[i,j], len-2,len), sep="")
+    }
+  }
+}
+
+data$star = as.numeric(data$star)
+data$fork = as.numeric(data$fork)
+data$watch = as.numeric(data$watch)
+data$commits = as.numeric(data$commits)
+data$branches = as.numeric(data$branches)
+
+typeof(data$star)
+summary(data)
+
+data = data[,-1]
+
+data = data[order(data$star, decreasing= T),]
+
+```
+
+
+```{r}
+numericInput("seed", "Random value for spliting training and test sets", 50000, 0, 99999)
+sliderInput("size", "Training/Test set size", 0, 1500, 1300)
+```
+
+```{r}
+set.seed(input$seed)
+  train_id = sample(nrow(data), size = (input$size/1500)*nrow(data))
+  train_set <- data[train_id,]
+  test_set <- data[-train_id,]
+renderPlot({
+  
+  #print(paste(nrow(train_set), "train +", nrow(test_set), "test"))
+  model_lm = lm(star ~ fork+watch+commits+branches, train_set)
+  plot(model_lm)
+  #summary(model_lm)
+  
+  train_predict_lm = predict(model_lm, train_set)
+  test_predict_lm = predict(model_lm, test_set)
+  
+  sqrt(mean((train_set$star - train_predict_lm)^2))
+  sqrt(mean((test_set$star - test_predict_lm)^2))
+})
+```
+

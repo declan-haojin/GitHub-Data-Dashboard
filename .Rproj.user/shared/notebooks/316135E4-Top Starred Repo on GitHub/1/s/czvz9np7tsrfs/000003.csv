@@ -1,0 +1,27 @@
+"0","
+  set.seed(7777777)
+  train_id = sample(nrow(data), size = 0.81*nrow(data))
+
+  train_set = data[train_id,]
+  test_set = data[-train_id,]
+
+  model_rf = randomForest(star ~ fork+watch+commits+branches, train_set)
+
+  plot(model_rf)
+  #par(mfrow = c(2, 2))  ##四个变量一起看
+  #visreg(model_rf)
+
+
+  train_predict_rf = predict(model_rf, train_set)
+  test_predict_rf = predict(model_rf, test_set)
+  sqrt(mean((train_set$star - train_predict_rf)^2))
+"
+"1","[1]"
+"1"," 4731.372"
+"1","
+"
+"0","  sqrt(mean((test_set$star - test_predict_rf)^2))"
+"1","[1]"
+"1"," 5621.246"
+"1","
+"

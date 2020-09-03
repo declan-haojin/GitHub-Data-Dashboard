@@ -1,0 +1,12 @@
+name: GithubData
+title: GithubData
+username:
+account: haojin
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2630663
+bundleId: 3459284
+url: https://haojin.shinyapps.io/GithubData/
+when: 1596204426.44197
+asMultiple: FALSE
+asStatic: FALSE

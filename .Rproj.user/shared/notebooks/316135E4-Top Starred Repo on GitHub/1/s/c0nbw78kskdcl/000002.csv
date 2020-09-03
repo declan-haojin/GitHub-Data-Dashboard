@@ -1,0 +1,5 @@
+"0","library(randomForest)
+  set.seed(input$seed)
+"
+"2","Error in set.seed(input$seed) : 找不到对象'input'
+"

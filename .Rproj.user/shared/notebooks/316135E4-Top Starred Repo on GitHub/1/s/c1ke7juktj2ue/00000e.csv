@@ -1,0 +1,26 @@
+"0","set.seed(7777777)
+  train_id = sample(nrow(data), size = 0.81*nrow(data))
+  
+  train_set = data[train_id,]
+  test_set = data[-train_id,]
+  #print(paste(nrow(train_set), ""train +"", nrow(test_set), ""test""))
+  model_lm = lm(star ~ fork+watch+commits+branches, train_set)
+  #plot(model_lm)
+  #model_glm <- glm(star ~ fork+watch+commits+branches, train_set)
+  par(mfrow = c(2, 2))  ##四个变量一起看
+  visreg(model_lm)
+  train_predict_lm = predict(model_lm, train_set)
+  test_predict_lm = predict(model_lm, test_set)
+  
+  
+  sqrt(mean((train_set$star - train_predict_lm)^2))
+"
+"1","[1]"
+"1"," 7805.235"
+"1","
+"
+"0","  sqrt(mean((test_set$star - test_predict_lm)^2))"
+"1","[1]"
+"1"," 6046.422"
+"1","
+"
